@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- connect-src 'self': the page can only load its own files (Pyodide, wheels, backend.py); no other host is reachable. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; worker-src 'self'; img-src 'self' blob: data:; style-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Blutbild → Excel</title>
+<meta name="description" content="Blutbild-PDFs lokal im Browser in eine geprüfte Excel-Tabelle umwandeln.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="theme-color" content="#f2f4f7">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<div class="page">
+
+<header class="bar">
+  <div class="brand" id="brand" hidden>
+    <span class="mark mark-sm" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7c-3.5 4.3-6 7.6-6 11.1a6 6 0 0 0 12 0c0-3.5-2.5-6.8-6-11.1z"/><path d="M9.5 14.5h5"/></svg></span>
+    <span class="brand-name">Blutbild → Excel</span>
+  </div>
+  <div class="bar-actions">
+    <button class="btn btn-ghost" id="install" hidden data-i18n="install"></button>
+    <button class="btn btn-ghost" id="restart" hidden data-i18n="restart"></button>
+    <div class="seg" role="group" aria-label="Sprache / Language">
+      <button type="button" data-lang="de">DE</button>
+      <button type="button" data-lang="en">EN</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- 1. start: the whole screen is the drop area -->
+  <section id="start" class="drop">
+    <span class="mark" aria-hidden="true"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7c-3.5 4.3-6 7.6-6 11.1a6 6 0 0 0 12 0c0-3.5-2.5-6.8-6-11.1z"/><path d="M9.5 14.5h5"/></svg></span>
+    <h1 class="app-name">Blutbild → Excel</h1>
+    <p class="lead" data-i18n="dropTitle"></p>
+    <div class="row">
+      <label class="btn btn-primary"><input type="file" id="pick-files" accept="application/pdf,.pdf" multiple class="sr-only"><span data-i18n="pickFiles"></span></label>
+      <label class="btn btn-secondary"><input type="file" id="pick-folder" webkitdirectory multiple class="sr-only"><span data-i18n="pickFolder"></span></label>
+    </div>
+    <p class="muted local"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span data-i18n="local"></span></p>
+  </section>
+
+  <!-- 2. loading -->
+  <section id="loading" class="panel loading" role="status" aria-live="polite" hidden>
+    <svg class="spin" aria-hidden="true" width="40" height="40" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="16" stroke="#e6e6e6" stroke-width="3.5"/><path d="M20 4a16 16 0 0 1 16 16" stroke="#141414" stroke-width="3.5" stroke-linecap="round"/></svg>
+    <p class="loading-text" id="loading-text"></p>
+    <div class="track"><div class="track-fill" id="track-fill"></div></div>
+    <p class="muted" data-i18n="local"></p>
+  </section>
+
+  <!-- 3. result -->
+  <section id="done" class="stack" hidden>
+    <div id="notice" class="notice" role="status"></div>
+
+    <section class="panel" aria-labelledby="files-h">
+      <h2 id="files-h" class="panel-title" data-i18n="files"></h2>
+      <div class="scroll-x">
+        <table class="files">
+          <thead><tr>
+            <th scope="col" data-i18n="colFile"></th>
+            <th scope="col" data-i18n="colParticipant"></th>
+            <th scope="col" class="num" data-i18n="colDate"></th>
+            <th scope="col" data-i18n="colStatus"></th>
+            <th scope="col"><span class="sr-only" data-i18n="colAction"></span></th>
+          </tr></thead>
+          <tbody id="file-rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="preview-h">
+      <div class="panel-head">
+        <h2 id="preview-h" class="panel-title" data-i18n="preview"></h2>
+        <span class="muted small" data-i18n="previewHint"></span>
+      </div>
+      <div class="sheet" id="sheet"></div>
+      <div class="tabs" role="tablist" id="tabs"></div>
+    </section>
+
+    <section class="panel export" aria-labelledby="export-h">
+      <div>
+        <h2 id="export-h" class="panel-title flush">Excel: blutbilder.xlsx</h2>
+        <p class="muted" data-i18n="exportHint"></p>
+      </div>
+      <div class="row">
+        <fieldset class="sheets">
+          <legend class="sr-only" data-i18n="sheets"></legend>
+          <label><input type="checkbox" data-sheet="Overview" checked> Overview</label>
+          <label><input type="checkbox" data-sheet="Check" checked> Check</label>
+        </fieldset>
+        <button class="btn btn-primary" id="download">
+          <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+          <span data-i18n="download"></span>
+        </button>
+      </div>
+    </section>
+
+    <label class="more">
+      <input type="file" id="pick-more" accept="application/pdf,.pdf" multiple class="sr-only">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"/></svg>
+      <span data-i18n="more"></span>
+    </label>
+  </section>
+</main>
+
+<footer class="foot muted small"><span data-i18n="footer"></span></footer>
+</div>
+<div class="dropping" id="dropping" hidden><span data-i18n="dropNow"></span></div>
+</body>
+</html>
