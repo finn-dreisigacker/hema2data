@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION on every release so users get the new files on their next visit.
-const VERSION = "v3";
+const VERSION = "v4";
 const FILES = [
   "./", "index.html", "style.css", "app.js", "worker.js", "backend.py", "manifest.webmanifest",
   "icons/icon.svg", "icons/favicon-32.png", "icons/icon-192.png", "icons/icon-512.png",

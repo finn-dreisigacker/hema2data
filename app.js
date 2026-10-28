@@ -277,6 +277,12 @@ window.addEventListener("drop", async (ev) => {
   if (state.step !== "loading") process(await droppedFiles(ev.dataTransfer));
 });
 
+// address is only assembled on click, so it never appears in the HTML that spam bots scrape
+$("mail").onclick = (ev) => {
+  ev.preventDefault();
+  location.href = "mailto:" + ["dreisigacker.finn", "web.de"].join("@");
+};
+
 let installPrompt = null;
 window.addEventListener("beforeinstallprompt", (ev) => { ev.preventDefault(); installPrompt = ev; $("install").hidden = false; });
 $("install").onclick = async () => { await installPrompt?.prompt(); installPrompt = null; $("install").hidden = true; };
