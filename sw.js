@@ -1,5 +1,5 @@
 // Offline cache. Bump VERSION on every release so users get the new files on their next visit.
-const VERSION = "v9";
+const VERSION = "v10";
 const FILES = [
   "./", "index.html", "style.css", "app.js", "worker.js", "backend.py", "manifest.webmanifest",
   "icons/icon.svg", "icons/favicon-32.png", "icons/icon-192.png", "icons/icon-512.png",
@@ -17,14 +17,9 @@ self.addEventListener("install", (e) => e.waitUntil(caches.open(VERSION).then((c
 self.addEventListener("activate", (e) => e.waitUntil(
   caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim())
 ));
-// network first, so an update shows up as soon as the user is online; cache when offline
+// Network first, so an update shows up as soon as the user is online. Offline, everything comes from the cache that
+// install filled in one go, so old and new files are never mixed (no per-request cache writes).
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
-  e.respondWith(
-    fetch(e.request).then((r) => {
-      const copy = r.clone();
-      if (r.ok) caches.open(VERSION).then((c) => c.put(e.request, copy));
-      return r;
-    }).catch(() => caches.match(e.request, { ignoreSearch: true }))
-  );
+  e.respondWith(fetch(e.request).catch(() => caches.match(e.request, { ignoreSearch: true })));
 });

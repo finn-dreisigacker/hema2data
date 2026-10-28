@@ -20,7 +20,7 @@ from pprint import pprint
 import pdfplumber
 
 # Settings
-EINGABEN = [] # "/Users/…/<Name>.pdf"
+EINGABEN = [] # z. B. ["/Users/…/<Name>.pdf"] oder ein Ordner
 
 EXCEL = None # Pfad der Ausgabe-Excel "/Users/…/<excel_name>.xlsx"
 
@@ -167,7 +167,7 @@ def parse_text(text):
     
     try:
         datum = datetime.strptime(kopf.get("Date", ""), "%Y-%m-%d %H:%M")
-        entnahme = datum.isoformat()                 
+        entnahme = datum.strftime("%Y-%m-%d %H:%M")                 
     except ValueError:           
         entnahme = None
         fehler.append(f"Sample date not readable: {kopf.get('Date')!r}.")
@@ -337,9 +337,10 @@ def lies_pdf(pfad):
         pfad.read_bytes()).hexdigest() # Dublettenerkennung
     return ergebnis
 
-# Check
-ergebnis = lies_pdf(EINGABEN[0])
-pprint(ergebnis, sort_dicts=False)
+# Check (nur beim direkten Start und wenn EINGABEN gefüllt ist; nicht beim Import, z. B. in der Web-App)
+if __name__ == "__main__" and EINGABEN:
+    ergebnis = lies_pdf(EINGABEN[0])
+    pprint(ergebnis, sort_dicts=False)
 
 # Ergebnisse in eine Excel schreiben
 def excel_schreiben(ergebnisse, ziel):
@@ -414,6 +415,7 @@ def excel_schreiben(ergebnisse, ziel):
             for zelle in zeile:
                 if zelle.data_type == "f":
                     zelle.data_type = "s"
+                    zelle.quotePrefix = True  # bleibt Text, auch wenn die Zelle in Excel bearbeitet wird
 
     wb.save(ziel)
 

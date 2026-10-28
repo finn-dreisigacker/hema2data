@@ -70,10 +70,8 @@ async function boot() {
   py = await loadPyodide({ indexURL: BASE + "vendor/pyodide/" });
   await py.loadPackage(WHEELS.map((w) => BASE + "vendor/wheels/" + w));
   const src = await (await fetch(BASE + "backend.py", { cache: "no-cache" })).text();
-  // shortcut: drops the two debug lines in backend.py that read a fixed path on import; remove when they go.
-  const patched = src.replace(/^ergebnis = lies_pdf\(EINGABEN\[0\]\)\s*\npprint\(ergebnis.*\)\s*$/m, "");
   py.FS.mkdirTree("/home/pyodide");
-  py.FS.writeFile("/home/pyodide/backend.py", patched);
+  py.FS.writeFile("/home/pyodide/backend.py", src);
   py.runPython(GLUE);
   // The page's CSP does not reach this worker (GitHub Pages cannot send headers), so once everything is loaded
   // the worker gives up its network APIs: from here on nothing in it can send data anywhere.

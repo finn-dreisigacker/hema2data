@@ -173,7 +173,8 @@ const MESSAGES_DE = [
 ];
 
 function message(m) {
-  if (state.lang !== "de") return m;
+  // real messages are short; skipping long ones keeps the nested (.+) patterns from backtracking for seconds
+  if (state.lang !== "de" || m.length > 500) return m;
   for (const [re, de] of MESSAGES_DE) if (re.test(m)) return m.replace(re, de);
   return m;
 }
