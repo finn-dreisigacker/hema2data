@@ -1,6 +1,6 @@
 {
-  "name": "Blutbild → Excel",
-  "short_name": "Blutbild",
+  "name": "Hema2Data",
+  "short_name": "Hema2Data",
   "description": "Blutbild-PDFs lokal im Browser in eine geprüfte Excel-Tabelle umwandeln.",
   "start_url": "./",
   "scope": "./",

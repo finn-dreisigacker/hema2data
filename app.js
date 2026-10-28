@@ -3,40 +3,42 @@
 const T = {
   de: {
     install: "Als App installieren", restart: "Neu starten",
-    dropTitle: "Blutbild-PDFs oder einen ganzen Ordner hierher ziehen. Sie erhalten eine geprüfte Excel-Tabelle.",
+    dropTitle: "Blutbild-PDFs oder einen ganzen Ordner hierher ziehen.",
     pickFiles: "Dateien auswählen", pickFolder: "Ordner auswählen", dropNow: "Loslassen zum Einlesen",
-    local: "Läuft nur in diesem Browser · nichts wird hochgeladen",
+    local: "Läuft nur in diesem Browser",
     booting: "Auswertung wird vorbereitet …", reading: "PDF {i} von {n} wird gelesen …",
     okHead: "Keine Fehler: alle {n} PDFs vollständig gelesen",
     errHead: "{e} von {n} PDFs mit Fehlern",
     errHint: "Die Meldungen stehen in der Tabelle. Betroffene Werte bitte im PDF prüfen; fehlende Zellen bleiben in der Excel leer.",
     noPdf: "Keine PDF-Dateien gefunden.",
     files: "Dateien", colFile: "Datei", colParticipant: "Proband", colDate: "Entnahme", colStatus: "Status", colAction: "Aktion",
-    clean: "Sauber", check: "Prüfen", warn: "Hinweis", openPdf: "PDF öffnen",
-    preview: "Vorschau der Excel", previewHint: "So steht es in blutbilder.xlsx",
-    sheets: "Tabellenblätter", exportHint: "Fehlende Werte bleiben leer, das Blatt „Check“ listet jede Meldung.",
-    download: "Excel herunterladen", needSheet: "Mindestens ein Tabellenblatt wählen.",
+    ok: "OK", warn: "Warnung", error: "Fehler", openPdf: "PDF öffnen",
+    preview: "Vorschau der Excel", fileName: "blutbilder.xlsx",
+    sheets: "Tabellenblätter", exportHint: "Fehlende Werte bleiben leer.",
+    advanced: "Erweitert", addCheck: "Blatt „Check“ mit allen Meldungen hinzufügen",
+    download: "Excel herunterladen",
     more: "Weitere PDFs oder einen Ordner hierher ziehen. Die Dateien werden nur gelesen, nicht hochgeladen.",
-    footer: "Ausgewertet mit backend.py im Browser (Pyodide). Prüfen: Entwicklertools → Netzwerk zeigt beim Einlesen keine Anfrage nach außen.",
+    madeBy: "Erstellt von",
     failed: "Fehler bei der Auswertung: {m}",
   },
   en: {
     install: "Install as app", restart: "Start over",
-    dropTitle: "Drop blood count PDFs or a whole folder here. You get a checked Excel file.",
+    dropTitle: "Drop blood count PDFs or a whole folder here.",
     pickFiles: "Choose files", pickFolder: "Choose folder", dropNow: "Release to read",
-    local: "Runs only in this browser · nothing is uploaded",
+    local: "Runs only in this browser",
     booting: "Preparing …", reading: "Reading PDF {i} of {n} …",
     okHead: "No errors: all {n} PDFs read completely",
     errHead: "{e} of {n} PDFs have errors",
     errHint: "The messages are in the table. Please check the affected values in the PDF; missing cells stay empty in the Excel file.",
     noPdf: "No PDF files found.",
     files: "Files", colFile: "File", colParticipant: "Participant", colDate: "Collected", colStatus: "Status", colAction: "Action",
-    clean: "Clean", check: "Check", warn: "Note", openPdf: "Open PDF",
-    preview: "Excel preview", previewHint: "Exactly what blutbilder.xlsx contains",
-    sheets: "Sheets", exportHint: "Missing values stay empty; the “Check” sheet lists every message.",
-    download: "Download Excel", needSheet: "Choose at least one sheet.",
+    ok: "OK", warn: "Warning", error: "Error", openPdf: "Open PDF",
+    preview: "Excel preview", fileName: "bloodcounts.xlsx",
+    sheets: "Sheets", exportHint: "Missing values stay empty.",
+    advanced: "Advanced", addCheck: "Add a “Check” sheet with every message",
+    download: "Download Excel",
     more: "Drop more PDFs or a folder here. Files are only read, never uploaded.",
-    footer: "Processed with backend.py in your browser (Pyodide). To verify: DevTools → Network shows no outside request while reading.",
+    madeBy: "Made by",
     failed: "Processing failed: {m}",
   },
 };
@@ -58,6 +60,8 @@ function setLang(lang) {
   document.documentElement.lang = lang;
   document.querySelectorAll("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.lang === lang)));
+  // follow the language only while the user has not typed their own name
+  if (!state.nameEdited) $("filename").value = t("fileName");
   renderLoading();
   if (state.step === "done") renderDone();
 }
@@ -118,17 +122,14 @@ worker.onmessage = ({ data }) => {
 };
 
 function chosenSheets() {
-  const out = { Values: false, Overview: false, Check: false };
+  const out = { Values: false, Overview: true, Check: false };
   document.querySelectorAll("[data-sheet]").forEach((c) => { out[c.dataset.sheet] = c.checked; });
   return out;
 }
 
 function buildExcel() {
-  const sheets = chosenSheets();
-  const any = Object.values(sheets).some(Boolean);
-  $("download").disabled = !any || !state.results.length;
-  $("download").title = any ? "" : t("needSheet");
-  if (any && state.results.length) worker.postMessage({ type: "excel", sheets });
+  $("download").disabled = !state.results.length;
+  if (state.results.length) worker.postMessage({ type: "excel", sheets: chosenSheets() });
 }
 
 // ---- rendering ----
@@ -172,7 +173,7 @@ function renderDone() {
     tr.append(d);
 
     const st = el("td");
-    st.append(r.errors.length ? el("span", "pill bad", t("check")) : r.warnings.length ? el("span", "pill warn", t("warn")) : el("span", "pill ok", t("clean")));
+    st.append(r.errors.length ? el("span", "pill bad", t("error")) : r.warnings.length ? el("span", "pill warn", t("warn")) : el("span", "pill ok", t("ok")));
     const msgs = [...r.errors, ...r.warnings];
     if (msgs.length) {
       const ul = el("ul", "msgs");
@@ -245,9 +246,16 @@ for (const id of ["pick-files", "pick-folder", "pick-more"]) {
 }
 document.querySelectorAll("[data-sheet]").forEach((c) => c.addEventListener("change", () => buildExcel()));
 
+$("filename").addEventListener("input", () => { state.nameEdited = $("filename").value.trim() !== ""; });
+
+function fileName() {
+  const name = $("filename").value.trim().replace(/[\\/:*?"<>|]+/g, "_") || t("fileName");
+  return /\.xlsx$/i.test(name) ? name : name + ".xlsx";
+}
+
 $("download").onclick = () => {
   const url = URL.createObjectURL(new Blob([state.xlsx], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
-  const a = Object.assign(document.createElement("a"), { href: url, download: "blutbilder.xlsx" });
+  const a = Object.assign(document.createElement("a"), { href: url, download: fileName() });
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 };

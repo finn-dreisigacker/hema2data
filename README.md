@@ -1,4 +1,4 @@
-# Blutbild → Excel
+# Hema2Data
 
 Turns blood count PDFs into a checked Excel file, entirely in the browser. `backend.py` runs unchanged in
 [Pyodide](https://pyodide.org); PDFs never leave the computer.

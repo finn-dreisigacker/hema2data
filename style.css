@@ -29,8 +29,8 @@ main { flex: 1; display: flex; flex-direction: column; }
 .brand { display: flex; gap: 10px; align-items: center; }
 .brand-name { font-weight: 500; font-size: 16px; }
 .bar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-left: auto; }
-.mark { width: 72px; height: 72px; border-radius: 18px; background: var(--primary); display: inline-flex; align-items: center; justify-content: center; flex: none; }
-.mark-sm { width: 28px; height: 28px; border-radius: 7px; }
+.logo { display: block; flex: none; }
+.logo-sm { display: block; flex: none; }
 
 .seg { display: inline-flex; padding: 2px; border-radius: 8px; background: #e5e5e5; }
 .seg button { height: 28px; min-width: 40px; padding: 0 10px; border: none; border-radius: 6px; background: transparent; color: var(--soft); font-weight: 500; font-size: 13px; cursor: pointer; }
@@ -110,9 +110,16 @@ table { border-collapse: collapse; }
 
 .export { padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 12px 32px; align-items: center; justify-content: space-between; }
 .export p { margin: 2px 0 0; }
-.sheets { border: none; margin: 0; padding: 0; display: flex; gap: 4px 20px; }
-.sheets label { display: inline-flex; gap: 8px; align-items: center; min-height: 40px; cursor: pointer; }
-.sheets input { width: 16px; height: 16px; accent-color: var(--primary); }
+.export { align-items: flex-start; }
+.export-name { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 8px; align-items: center; flex: 1 1 360px; max-width: 520px; }
+.export-name > p, .export-name > details { grid-column: 1 / -1; }
+.filename { height: 36px; padding: 0 10px; border: 1px solid var(--control); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 15px; font-weight: 500; min-width: 0; }
+.filename:hover { border-color: #b5b5b5; }
+.advanced summary { cursor: pointer; color: var(--muted); padding: 6px 0; width: fit-content; }
+.advanced summary:hover { color: var(--text); }
+.advanced label { display: inline-flex; gap: 8px; align-items: center; min-height: 36px; cursor: pointer; }
+.advanced input { width: 16px; height: 16px; accent-color: var(--primary); }
+.foot a { color: inherit; }
 
 .more { border: 1px dashed var(--control); border-radius: 8px; padding: 20px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; color: var(--muted); text-align: center; cursor: pointer; }
 .more:hover { border-color: var(--primary); color: var(--text); }

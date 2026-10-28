@@ -1,8 +1,8 @@
 // Offline cache. Bump VERSION on every release so users get the new files on their next visit.
-const VERSION = "v1";
+const VERSION = "v3";
 const FILES = [
   "./", "index.html", "style.css", "app.js", "worker.js", "backend.py", "manifest.webmanifest",
-  "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png",
+  "icons/icon.svg", "icons/favicon-32.png", "icons/icon-192.png", "icons/icon-512.png",
   "vendor/fonts/Geist-Variable.woff2", "vendor/fonts/GeistMono-Variable.woff2",
   "vendor/pyodide/pyodide.js", "vendor/pyodide/pyodide.asm.js", "vendor/pyodide/pyodide.asm.wasm",
   "vendor/pyodide/python_stdlib.zip", "vendor/pyodide/pyodide-lock.json",
