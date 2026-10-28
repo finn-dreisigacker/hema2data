@@ -9,6 +9,8 @@ const T = {
     booting: "Auswertung wird vorbereitet …", reading: "PDF {i} von {n} wird gelesen …",
     okHead: "Keine Fehler: alle {n} PDFs vollständig gelesen",
     errHead: "{e} von {n} PDFs mit Fehlern",
+    warnHead: "Keine Fehler, aber {w} von {n} PDFs mit Warnungen",
+    warnHint: "Das Gerät hat Werte markiert. Bitte im PDF prüfen; die Werte stehen in der Excel.",
     errHint: "Die Meldungen stehen in der Tabelle. Betroffene Werte bitte im PDF prüfen; fehlende Zellen bleiben in der Excel leer.",
     noPdf: "Keine PDF-Dateien gefunden.",
     files: "Dateien", colFile: "Datei", colParticipant: "Proband", colDate: "Entnahme", colStatus: "Status", colAction: "Aktion",
@@ -29,6 +31,8 @@ const T = {
     booting: "Preparing …", reading: "Reading PDF {i} of {n} …",
     okHead: "No errors: all {n} PDFs read completely",
     errHead: "{e} of {n} PDFs have errors",
+    warnHead: "No errors, but {w} of {n} PDFs have warnings",
+    warnHint: "The device flagged some values. Please check the PDF; the values are in the Excel file.",
     errHint: "The messages are in the table. Please check the affected values in the PDF; missing cells stay empty in the Excel file.",
     noPdf: "No PDF files found.",
     files: "Files", colFile: "File", colParticipant: "Participant", colDate: "Collected", colStatus: "Status", colAction: "Action",
@@ -154,13 +158,15 @@ function renderDone() {
   const rs = state.results;
   const n = rs.length;
   const e = rs.filter((r) => r.errors.length).length;
+  const w = rs.filter((r) => r.warnings.length).length;
+  const kind = e ? "bad" : w ? "warn" : "ok";
 
   const notice = $("notice");
-  notice.className = "notice " + (e ? "bad" : "ok");
-  notice.innerHTML = e ? ICON_BAD : ICON_OK;
+  notice.className = "notice " + kind;
+  notice.innerHTML = kind === "ok" ? ICON_OK : ICON_BAD;
   const box = el("div");
-  box.append(el("strong", null, e ? t("errHead", { e, n }) : t("okHead", { n })));
-  if (e) box.append(el("span", null, t("errHint")));
+  box.append(el("strong", null, { bad: t("errHead", { e, n }), warn: t("warnHead", { w, n }), ok: t("okHead", { n }) }[kind]));
+  if (kind !== "ok") box.append(el("span", null, t(kind === "bad" ? "errHint" : "warnHint")));
   notice.append(box);
 
   const body = $("file-rows");
@@ -183,7 +189,7 @@ function renderDone() {
     tr.append(st);
 
     const act = el("td");
-    if (r.errors.length) {
+    if (r.errors.length || r.warnings.length) {
       const b = el("button", "btn btn-small", t("openPdf"));
       b.onclick = () => window.open(URL.createObjectURL(state.files[idx]), "_blank", "noopener");
       act.append(b);

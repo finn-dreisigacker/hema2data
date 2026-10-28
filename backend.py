@@ -61,7 +61,7 @@ WERTZEILE = re.compile(
     rf"""
     ^
     (?P<code>[A-Z][A-Z-]*)          # Parametercode, z. B. WBC oder P-LC
-    (?P<markiert>")?                # optionales Anführungszeichen (Gerät markiert den Wert)
+    (?P<markiert>["*])?             # optionales " oder * (Gerät markiert den Wert)
     \s+
     (?P<wert>{ZAHL})                # gemessener Wert
     \s*
@@ -118,7 +118,7 @@ def pdf_text(pfad):
 # Zuordnen des Textes zu Kopf, Werte, Notizen.
 def parse_text(text):
     kopf, werte, unerkannt, notiz = {}, [], [], []
-    fehler, betroffen = [], set()
+    fehler, betroffen, warnungen = [], set(), []
     in_notiz = False
     for zeile in (z.strip() for z in text.splitlines()):
         if not zeile or zeile == "Sample Results":
@@ -131,6 +131,9 @@ def parse_text(text):
             kopf[m[1]] = m[2].strip()
         elif (m := WERTZEILE.match(zeile)) and m["code"] in PARAM:
             werte += werte_aus(m, fehler, betroffen)
+            # * ist eine Gerätewarnung; " steht bei PDW/PCT/P-LC auf jedem Befund und bleibt still
+            if m["markiert"] == "*":
+                warnungen.append(f"{m['code']}: value flagged by the device (*), check the PDF.")
         else:
             unerkannt.append(zeile)
 
@@ -188,7 +191,7 @@ def parse_text(text):
         "notes": "\n".join(notiz),
         "errors": fehler,
         "error_parameters": sorted(betroffen),
-        "warnings": [],
+        "warnings": warnungen,
     }
 
 # Werte in jeder Zeile prüfen
