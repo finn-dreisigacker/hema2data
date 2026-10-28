@@ -138,6 +138,30 @@ function buildExcel() {
 
 // ---- rendering ----
 
+// backend.py writes English messages (they also go into the Excel); the German UI translates the known ones.
+const MESSAGES_DE = [
+  [/^Parameter (.+) missing or not recognized\.$/, "$1 fehlt oder wurde nicht erkannt."],
+  [/^Parameter (.+) appears more than once\.$/, "$1 kommt mehrfach vor."],
+  [/^Line not recognized: (.*)$/, "Zeile nicht erkannt: $1"],
+  [/^Sample date not readable: (.*)\.$/, "Entnahmedatum nicht lesbar: $1."],
+  [/^(.+): unit (.+) instead of (.+)\.$/, "$1: Einheit $2 statt $3."],
+  [/^(.+): reference range (.+) invalid\.$/, "$1: Referenzbereich $2 ungültig."],
+  [/^(.+): value (.+) implausible \(reference (.+)\)\.$/, "$1: Wert $2 unplausibel (Referenz $3)."],
+  [/^(.+): secondary value in (.+) instead of (.+)\.$/, "$1: Zusatzwert in $2 statt $3."],
+  [/^(.+): secondary value \((.+)\) missing\.$/, "$1: Zusatzwert ($2) fehlt."],
+  [/^(.+) = (.+), but (.+) gives (.+): Value probably misread, check the PDF\.$/, "$1 = $2, aber $3 ergibt $4: Wert vermutlich falsch gelesen, bitte im PDF prüfen."],
+  [/^(.+): value flagged by the device \(\*\), check the PDF\.$/, "$1: Wert vom Gerät markiert (*), bitte im PDF prüfen."],
+  [/^PDF has (\d+) pages, expected 1\.$/, "PDF hat $1 Seiten, erwartet wird 1."],
+  [/^Same file as (.+)\.$/, "Gleiche Datei wie $1."],
+  [/^PDF unreadable: (.*)$/, "PDF nicht lesbar: $1"],
+];
+
+function message(m) {
+  if (state.lang !== "de") return m;
+  for (const [re, de] of MESSAGES_DE) if (re.test(m)) return m.replace(re, de);
+  return m;
+}
+
 function renderLoading() {
   const p = state.progress;
   $("loading-text").textContent = p ? t("reading", p) : t("booting");
@@ -183,7 +207,7 @@ function renderDone() {
     const msgs = [...r.errors, ...r.warnings];
     if (msgs.length) {
       const ul = el("ul", "msgs");
-      msgs.forEach((m) => ul.append(el("li", null, m)));
+      msgs.forEach((m) => ul.append(el("li", null, message(m))));
       st.append(ul);
     }
     tr.append(st);
