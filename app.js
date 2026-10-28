@@ -215,7 +215,8 @@ function renderDone() {
     const act = el("td");
     if (r.errors.length || r.warnings.length) {
       const b = el("button", "btn btn-small", t("openPdf"));
-      b.onclick = () => window.open(URL.createObjectURL(state.files[idx]), "_blank", "noopener");
+      // force the PDF type: a blob URL runs with this page's origin, so it must never be rendered as HTML
+      b.onclick = () => window.open(URL.createObjectURL(new Blob([state.files[idx]], { type: "application/pdf" })), "_blank", "noopener");
       act.append(b);
     }
     tr.append(act);

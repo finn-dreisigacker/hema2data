@@ -402,6 +402,13 @@ def excel_schreiben(ergebnisse, ziel):
         if not aktiv:
             del wb[name]
 
+    # Text aus dem PDF, der mit = beginnt, sonst als Formel speichern (Formel-Injektion)
+    for blatt in wb.worksheets:
+        for zeile in blatt.iter_rows():
+            for zelle in zeile:
+                if zelle.data_type == "f":
+                    zelle.data_type = "s"
+
     wb.save(ziel)
 
 

@@ -75,7 +75,15 @@ async function boot() {
   py.FS.mkdirTree("/home/pyodide");
   py.FS.writeFile("/home/pyodide/backend.py", patched);
   py.runPython(GLUE);
+  // The page's CSP does not reach this worker (GitHub Pages cannot send headers), so once everything is loaded
+  // the worker gives up its network APIs: from here on nothing in it can send data anywhere.
+  for (const api of ["fetch", "XMLHttpRequest", "WebSocket", "EventSource", "importScripts", "Worker"]) {
+    Object.defineProperty(self, api, { value: undefined, writable: false, configurable: false });
+  }
 }
+
+// File names come from the user's disk; keep them a single path segment inside MEMFS.
+const safeName = (name) => name.replace(/[\\/\0]/g, "_").replace(/^\.+$/, "_") || "unnamed.pdf";
 
 self.onmessage = async ({ data }) => {
   try {
@@ -85,12 +93,20 @@ self.onmessage = async ({ data }) => {
       const n = data.files.length;
       for (let i = 0; i < n; i++) {
         self.postMessage({ type: "progress", i: i + 1, n });
-        const dir = `/tmp/in/${counter++}`;
-        py.FS.mkdirTree(dir);
-        const path = `${dir}/${data.files[i].name}`;
-        py.FS.writeFile(path, new Uint8Array(data.files[i].bytes));
-        const result = JSON.parse(py.globals.get("lies")(path));
-        py.FS.unlink(path);
+        const name = safeName(data.files[i].name);
+        let result;
+        try {
+          const dir = `/tmp/in/${counter++}`;
+          py.FS.mkdirTree(dir);
+          const path = `${dir}/${name}`;
+          py.FS.writeFile(path, new Uint8Array(data.files[i].bytes));
+          result = JSON.parse(py.globals.get("lies")(path));
+          py.FS.unlink(path);
+        } catch (err) {
+          // one bad file must not stop the rest of the batch
+          result = { file: name, participant_id: null, collected_at: null, values: [],
+                     errors: [`PDF unreadable: ${err.message || err}`], error_parameters: [], warnings: [] };
+        }
         self.postMessage({ type: "result", result });
       }
       self.postMessage({ type: "done" });
