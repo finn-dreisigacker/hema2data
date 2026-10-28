@@ -48,8 +48,19 @@ const T = {
 };
 
 const $ = (id) => document.getElementById(id);
-const state = { lang: "de", results: [], files: [], sheets: null, sheet: null, xlsx: null, step: "start", progress: null };
-const worker = new Worker("worker.js");
+const state = { lang: "de", results: [], files: [], pending: [], sheets: null, sheet: null, xlsx: null, step: "start", progress: null };
+// GitHub Pages cannot send a CSP header for worker.js, so the worker is started from a blob: URL,
+// which makes it inherit this page's CSP (connect-src 'self') instead of running without one.
+const worker = {
+  ready: (async () => {
+    const src = await (await fetch("worker.js")).text();
+    const base = JSON.stringify(new URL(".", location.href).href);
+    const w = new Worker(URL.createObjectURL(new Blob([`const BASE = ${base};\n${src}`], { type: "text/javascript" })));
+    w.onmessage = onWorkerMessage;
+    return w;
+  })(),
+  async postMessage(msg, transfer) { (await this.ready).postMessage(msg, transfer); },
+};
 worker.postMessage({ type: "warmup" }); // load Pyodide while the user picks files
 
 function t(key, vars = {}) {
@@ -105,13 +116,17 @@ async function process(list) {
   state.progress = null;
   renderLoading();
   const files = await Promise.all(pdfs.map(async (f) => ({ name: f.name, bytes: await f.arrayBuffer() })));
-  state.files.push(...pdfs);
+  state.pending.push(...pdfs);
   worker.postMessage({ type: "run", files }, files.map((f) => f.bytes));
 }
 
-worker.onmessage = ({ data }) => {
+function onWorkerMessage({ data }) {
   if (data.type === "progress") { state.progress = data; renderLoading(); }
-  else if (data.type === "result") state.results.push(data.result);
+  else if (data.type === "result") {
+    // results arrive in file order; pairing them here keeps "PDF öffnen" on the right file
+    state.results.push(data.result);
+    state.files.push(state.pending.shift());
+  }
   else if (data.type === "done") buildExcel();
   else if (data.type === "excel") {
     state.xlsx = data.bytes;
@@ -120,10 +135,11 @@ worker.onmessage = ({ data }) => {
     show("done");
     renderDone();
   } else if (data.type === "error") {
+    state.pending = [];
     alert(t("failed", { m: data.message }));
     show(state.results.length ? "done" : "start");
   }
-};
+}
 
 function chosenSheets() {
   const out = { Values: false, Overview: true, Check: false };
@@ -293,7 +309,7 @@ $("download").onclick = () => {
 
 $("restart").onclick = () => {
   worker.postMessage({ type: "reset" });
-  Object.assign(state, { results: [], files: [], sheets: null, xlsx: null });
+  Object.assign(state, { results: [], files: [], pending: [], sheets: null, xlsx: null });
   show("start");
 };
 

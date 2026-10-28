@@ -1,5 +1,5 @@
 // Runs backend.py unchanged in Pyodide. Everything happens in this worker's memory; nothing is sent anywhere.
-importScripts("vendor/pyodide/pyodide.js");
+importScripts(BASE + "vendor/pyodide/pyodide.js"); // BASE is prepended by app.js
 
 const WHEELS = [
   "charset_normalizer-3.5.1-py3-none-any.whl",
@@ -67,9 +67,9 @@ let py = null;
 let counter = 0;
 
 async function boot() {
-  py = await loadPyodide({ indexURL: new URL("vendor/pyodide/", self.location).href });
-  await py.loadPackage(WHEELS.map((w) => new URL("vendor/wheels/" + w, self.location).href));
-  const src = await (await fetch("backend.py", { cache: "no-cache" })).text();
+  py = await loadPyodide({ indexURL: BASE + "vendor/pyodide/" });
+  await py.loadPackage(WHEELS.map((w) => BASE + "vendor/wheels/" + w));
+  const src = await (await fetch(BASE + "backend.py", { cache: "no-cache" })).text();
   // shortcut: drops the two debug lines in backend.py that read a fixed path on import; remove when they go.
   const patched = src.replace(/^ergebnis = lies_pdf\(EINGABEN\[0\]\)\s*\npprint\(ergebnis.*\)\s*$/m, "");
   py.FS.mkdirTree("/home/pyodide");

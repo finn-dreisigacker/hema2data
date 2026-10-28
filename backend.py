@@ -344,6 +344,11 @@ pprint(ergebnis, sort_dicts=False)
 # Ergebnisse in eine Excel schreiben
 def excel_schreiben(ergebnisse, ziel):
     from openpyxl import Workbook
+    from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
+
+    # Steuerzeichen aus Dateiname/PDF-Text würden openpyxl abbrechen lassen
+    def text(s):
+        return ILLEGAL_CHARACTERS_RE.sub("", s)
 
     wb = Workbook()
 
@@ -365,7 +370,8 @@ def excel_schreiben(ergebnisse, ziel):
     pruef.append(["File", "Type", "Message"])
 
     for e in ergebnisse:
-        proband = e["participant_id"] or ""
+        datei = text(e["file"])
+        proband = text(e["participant_id"] or "")
 
         if e["errors"]:
             status = "error"
@@ -382,10 +388,10 @@ def excel_schreiben(ergebnisse, ziel):
                 betroffen = "yes"
             else:
                 betroffen = ""
-            lang.append([e["file"], proband, e["collected_at"], w["parameter"], w["value"],
+            lang.append([datei, proband, e["collected_at"], w["parameter"], w["value"],
                          w["unit"], w["ref_min"], w["ref_max"], w["flag"], betroffen])
 
-        zeile = [e["file"], proband, e["collected_at"], status]
+        zeile = [datei, proband, e["collected_at"], status]
         for s in spalten:
             if s in werte:
                 zeile.append(werte[s]["value"])
@@ -394,9 +400,9 @@ def excel_schreiben(ergebnisse, ziel):
         breit.append(zeile)
 
         for meldung in e["errors"]:
-            pruef.append([e["file"], "error", meldung])
+            pruef.append([datei, "error", text(meldung)])
         for meldung in e["warnings"]:
-            pruef.append([e["file"], "warning", meldung])
+            pruef.append([datei, "warning", text(meldung)])
 
     for name, aktiv in EXCEL_BLAETTER.items():
         if not aktiv:
